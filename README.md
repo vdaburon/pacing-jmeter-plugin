@@ -11,6 +11,7 @@ Add notion of Pacing for Apache JMeter.
 ## What is the Pacing in load testing ?
 The Pacing in load testing is the **minimum time** before iterate.<br>
 The Pacing is fixe but the waiting time to complete the pacing time is dynamic.<br>
+Go to the FAQ for more explanations.
 
 ### Avantages of using Pacing
 * The pacing is useful for performance testing when modeling for a user at what rate (cadence) he will perform business actions.
@@ -103,7 +104,38 @@ The maven groupId, artifactId and version, this plugin is in the **Maven Central
 <artifactId>pacing-jmeter-plugin</artifactId>
 <version>1.0</version>
 ```
+## F.A.Q
 
+_Question 1) It sounds like Pacing mechanism in LR, but your plugin is much complicated. Instead of just set the pacing time, we have to add 2 different elements + set specific variable to use that._<br/>
+Answer : In LR, you just set the pacing time because LR know when the iteration start. With JMeter the thread start iteration is not yet saved. I proposed a Pull Request [Add new thread variable __jmv_THREAD_START_TIME_ITERATION contains the currentTimeMillis when the thread iteration start](https://github.com/apache/jmeter/pull/6356) for Apache JMeter to add a new variable named "__jmv_THREAD_START_TIME_ITERATION" to save the thread start iteration. So you will no more need the first "Pacing Start" and use directly the "Pacing Pause" with variable "__jmv_THREAD_START_TIME_ITERATION".<br/>
+The default variable name could be "__jmv_THREAD_START_TIME_ITERATION" when Apache JMeter (v6.0 and sup) include the code of the Pull Request 6356. The default name is set with property <code>pacing.default_variable_name</code>.
+
+_Question 2) Why you decide to use samplers instead of timer ?_<br/>
+Answer : Timers are **pre processors** not post processors so you can't compute the dynamic waiting time before alls samplers are finished.<br>
+The template was "Flow Control Action : Pause" a sampler not a timer. Visually use samplers at the same level of others samplers, you see more easily the Pacing Start and the Pacing Pause.
+
+_Question 3) JMeter already has “Constant Throughput Timer” that is the same as pacing. You have to set "number operations per minute" instead of "seconds between operations", but it changes nothing._<br/>
+Answer : “number operations per minute” and “seconds between operations” are not the same if you have conditionals call in the script.<br>
+![Simple Script With Conditional calls](doc/images/simple_script_with_if.png)<br/>
+E.g: 60% of iterations, the "IF" is true and "HTTP Request 3" + "HTTP Request 4" are call - Total number of requests is **5**. 40% of iterations the "IF" is false - Total number of request is only **3**.<br/>
+If you use a "Constant Throughput Timer" (number operations per minute) the result depends a lot on the "IF" condition.<br/>
+If you use a "Pacing Duration" the duration is the same and not depends on "IF" condition.<br/>
+Pacing makes easier to model cadences for load increases with several steps (eg: 50%, 100%, 150%). When you double the number of vusers with Pacing you double the load. It's not the same behaviour for "Constant Throughput Timer"<br/>
+<br/>
+For a Stepping Thread Group configured with 3 steps.<br/>
+![Stepping Threag Group](doc/images/stepping_thread_group.png)
+
+
+Result : Transactions per sec correspond exactly to the 3 steps declared in the Stepping Thread Group. Remark : The ramp up time = Pacing Duration = 4 sec<br/>
+![Transactions per sec](doc/images/composite_transactions_pers_sec_stepping_thread_group.png)
+
+_Question 4) For the pacing is usually use groovy samplers and this plugin does the same as my groovy script, why create a new plugin ?_<br/>
+Answer : It's true. Before this plugin, i use a first groovy sampler to save the start time and at the end of the script i add a groovy sampler to compute the dynamic wait time to complete the Pacing duration. And i add a "Flow Control Action : Pause" with value contains the computed wait time.<br/>
+This plugin remplace this 2 Groovy Samplers and the Flow Control Action. It's more visual to see the 2 dedicated samplers "Pause Start" and "Pacing Pause" then 2 samplers JSR223 Groovy en particular if you have multi groovy samplers in the script.
+
+_Question 5) Does this plugin only for Thread Iteration Pacing Duration ?_<br/>
+Anwser : No, this plugin is for Thread Iteration Pacing Duration and also for Pacing in a Loop.<br/>
+E.g: In you script you have a login, a loop (x 10) contains multi-calls, a logout. You can add a "Pacing Start in the begin of the Loop and the end of the Loop add a "Pacing Pause". The Pacing is computed for the Loop Iteration without the login and logout of the thread iteration.
 
 ## Limitation
 The main limitation of this Pacing Plugin is the Sampler Pause could be not call because an error occurred and the Thread Group is configured with "Start Next Thread Loop" on error.
