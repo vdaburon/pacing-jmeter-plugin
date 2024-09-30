@@ -135,7 +135,7 @@ This plugin remplace this 2 Groovy Samplers and the Flow Control Action. It's mo
 
 _Question 5) Does this plugin only for Thread Iteration Pacing Duration ?_<br/>
 Anwser : No, this plugin is for Thread Iteration Pacing Duration and also for Pacing in a Loop.<br/>
-E.g: In you script you have a login, a loop (x 10) contains multi-calls, a logout. You can add a "Pacing Start in the begin of the Loop and the end of the Loop add a "Pacing Pause". The Pacing is computed for the Loop Iteration without the login and logout of the thread iteration.
+E.g: In your script you have a login, a loop (x 10) contains multi-calls, a logout. You can add a "Pacing Start in the begin of the Loop and the end of the Loop add a "Pacing Pause". The Pacing is computed for the Loop Iteration without the login and logout of the thread iteration.
 
 ## Limitation
 The main limitation of this Pacing Plugin is the Sampler Pause could be not call because an error occurred and the Thread Group is configured with "Start Next Thread Loop" on error.
